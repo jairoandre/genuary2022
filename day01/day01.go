@@ -34,6 +34,23 @@ type Game struct {
 	pallet []*ebiten.Image
 }
 
+func (g *Game) GenerateThings() {
+	things := make([]*Thing, 0)
+	for y := 0; y < g.height; y += g.scale {
+		for x := 0; x < g.width; x += g.scale {
+			idx := int(rand.Float64() * float64(len(g.pallet)))
+			things = append(things, NewThing(x, y, g.pallet[idx]))
+		}
+	}
+	g.things = things
+}
+
+func (g *Game) GenerateOneThing() {
+	things := make([]*Thing, 0)
+	things = append(things, NewThing(0, int(g.halfH), g.pallet[0]))
+	g.things = things
+}
+
 func Init(w, h, s int) *Game {
 	game := Game{time: 0.0, width: w, height: h, scale: s}
 	game.halfW = float64(w) / 2.0
@@ -44,15 +61,8 @@ func Init(w, h, s int) *Game {
 		pallet = append(pallet, NewImg(game.scale, game.scale, RndColor()))
 	}
 	game.pallet = pallet
-	things := make([]*Thing, 0)
-	for y := 0; y < game.height; y += game.scale {
-		for x := 0; x < game.width; x += game.scale {
-			idx := int(rand.Float64() * float64(len(pallet)))
-			things = append(things, NewThing(x, y, pallet[idx]))
-		}
-	}
-	game.things = things
-	fmt.Println(len(things))
+	//game.GenerateThings()
+	game.GenerateOneThing()
 	return &game
 }
 
@@ -81,20 +91,20 @@ func RndColor() color.RGBA {
 func (t *Thing) draw(screen *ebiten.Image, game *Game, theta float64) {
 	op := &ebiten.DrawImageOptions{}
 	// Translate the thing position (y-axis is negative to invert the coordinates)
+	//op.GeoM.Rotate(theta)
 	op.GeoM.Translate(t.X, t.Y)
-	op.GeoM.Rotate(theta)
 	//op.GeoM.Translate(game.halfW-game.halfS, game.halfH-game.halfS)
 	screen.DrawImage(t.Img, op)
 }
 
 func (g *Game) Update() error {
-	g.time += .02
+	g.time += .2
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	for _, thing := range g.things {
-		thing.draw(screen, g, 0.01*g.time)
+		thing.draw(screen, g, g.time)
 	}
 	msg := fmt.Sprintf(`TPS: %0.2f FPS: %0.2f`, ebiten.CurrentTPS(), ebiten.CurrentFPS())
 	ebitenutil.DebugPrint(screen, msg)

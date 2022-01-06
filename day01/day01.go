@@ -14,6 +14,11 @@ type Thing struct {
 	Img *ebiten.Image
 }
 
+func (t *Thing) Update() {
+	t.X += (rand.Float64() - 0.5) * 2.0
+	t.Y += (rand.Float64() - 0.5) * 2.0
+}
+
 func NewThing(x, y int, img *ebiten.Image) *Thing {
 	return &Thing{
 		X:   float64(x),
@@ -47,7 +52,12 @@ func (g *Game) GenerateThings() {
 
 func (g *Game) GenerateOneThing() {
 	things := make([]*Thing, 0)
-	things = append(things, NewThing(0, int(g.halfH), g.pallet[0]))
+	for j := 0; j < g.height/g.scale; j++ {
+		for i := 0; i < g.width/g.scale; i++ {
+			things = append(things, NewThing(i*g.scale, j*g.scale, g.pallet[uint(rand.Float64()*float64(len(g.pallet)))]))
+		}
+	}
+	fmt.Println(len(things))
 	g.things = things
 }
 
@@ -57,7 +67,7 @@ func Init(w, h, s int) *Game {
 	game.halfH = float64(h) / 2.0
 	game.halfS = float64(s) / 2.0
 	pallet := make([]*ebiten.Image, 0)
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 10; i++ {
 		pallet = append(pallet, NewImg(game.scale, game.scale, RndColor()))
 	}
 	game.pallet = pallet
@@ -78,13 +88,13 @@ func RnUint8() uint8 {
 
 func RndColor() color.RGBA {
 	col := color.YCbCr{
-		Y:  RnUint8(),
-		Cb: RnUint8(),
-		Cr: RnUint8(),
+		Y:  150,
+		Cb: RnUint8() / 3,
+		Cr: 255,
 	}
-	r, g, b, a := col.RGBA()
+	r, g, b, _ := col.RGBA()
 	return color.RGBA{
-		R: uint8(r), G: uint8(g), B: uint8(b), A: uint8(a),
+		R: uint8(r), G: uint8(g), B: uint8(b), A: 150,
 	}
 }
 
@@ -104,6 +114,7 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	for _, thing := range g.things {
+		thing.Update()
 		thing.draw(screen, g, g.time)
 	}
 	msg := fmt.Sprintf(`TPS: %0.2f FPS: %0.2f`, ebiten.CurrentTPS(), ebiten.CurrentFPS())

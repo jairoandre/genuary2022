@@ -11,12 +11,23 @@ import (
 type Thing struct {
 	X   float64
 	Y   float64
+	Vx  float64
+	Vy  float64
 	Img *ebiten.Image
 }
 
-func (t *Thing) Update() {
-	t.X += (rand.Float64() - 0.5) * 2.0
-	t.Y += (rand.Float64() - 0.5) * 2.0
+func (t *Thing) Update(g *Game) {
+	if g.time < 25.0 {
+		t.X += (rand.Float64() - 0.5) * 2.0
+		t.Y += (rand.Float64() - 0.5) * 2.0
+	} else {
+		dX := t.X - g.halfW
+		dY := t.Y - g.halfH
+		t.Vx -= dX * 0.0001 * rand.Float64()
+		t.Vy -= dY * 0.0001 * rand.Float64()
+		t.X += t.Vx
+		t.Y += t.Vy
+	}
 }
 
 func NewThing(x, y int, img *ebiten.Image) *Thing {
@@ -114,7 +125,7 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	for _, thing := range g.things {
-		thing.Update()
+		thing.Update(g)
 		thing.draw(screen, g, g.time)
 	}
 	msg := fmt.Sprintf(`TPS: %0.2f FPS: %0.2f`, ebiten.CurrentTPS(), ebiten.CurrentFPS())

@@ -7,9 +7,9 @@ import (
 )
 
 func main() {
-	ebiten.SetWindowSize(500, 500)
+	ebiten.SetWindowSize(800, 600)
 	ebiten.SetWindowTitle("Spiral")
-	game := day01.Init(500, 500, 50)
+	game := day01.Init(800, 600, 20)
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 	}

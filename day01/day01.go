@@ -108,8 +108,11 @@ func RndColor() color.RGBA {
 		R: uint8(r), G: uint8(g), B: uint8(b), A: 150,
 	}
 }
-
 func (t *Thing) draw(screen *ebiten.Image, game *Game, theta float64) {
+	ebitenutil.DrawRect(t.Img, t.X, t.Y, 10.0, 2.0, color.White)
+}
+
+func (t *Thing) draw1(screen *ebiten.Image, game *Game, theta float64) {
 	op := &ebiten.DrawImageOptions{}
 	// Translate the thing position (y-axis is negative to invert the coordinates)
 	//op.GeoM.Rotate(theta)

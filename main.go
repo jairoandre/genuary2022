@@ -1,15 +1,15 @@
 package main
 
 import (
+	"genuary2022/particles"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/jairoandre/genuary2022/day01"
 	"log"
 )
 
 func main() {
-	ebiten.SetWindowSize(800, 600)
+	ebiten.SetWindowSize(300, 240)
 	ebiten.SetWindowTitle("Spiral")
-	game := day01.Init(800, 600, 20)
+	game := particles.NewGame()
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 	}

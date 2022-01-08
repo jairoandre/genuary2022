@@ -7,9 +7,9 @@ import (
 )
 
 func main() {
-	ebiten.SetWindowSize(300, 240)
+	ebiten.SetWindowSize(800, 600)
 	ebiten.SetWindowTitle("Spiral")
-	game := particles.NewGame()
+	game := particles.NewGame(800.0, 600.0)
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 	}

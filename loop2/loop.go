@@ -1,4 +1,4 @@
-package loop
+package loop2
 
 import (
 	"fmt"
@@ -8,7 +8,6 @@ import (
 	"github.com/ojrac/opensimplex-go"
 	"image/color"
 	"math"
-	"math/rand"
 )
 
 type Particle struct {
@@ -49,31 +48,38 @@ type Game struct {
 	Scale     int
 	Time      float64
 	Radius    float64
-	Noise     opensimplex.Noise
+	M         float64
+	Rad       float64
+	NPeriod   float64
+	Noises    []opensimplex.Noise
 	Particles []*Particle
 }
 
 func NewGame(w, h, radius float64, s int) *Game {
 	img := ebiten.NewImage(s, s)
 	img.Fill(color.White)
-	noise := opensimplex.New(332)
+	noises := make([]opensimplex.Noise, 0)
+	noises = append(noises, opensimplex.New(994))
+	noises = append(noises, opensimplex.New(673))
 	particles := make([]*Particle, 0)
-	center := utils.Pt(w/2, h/2)
-	tau := math.Pi / 180.0
-	for i := 0; i < 5000; i++ {
-		a := rand.Float64() * 360 * tau
-		r := rand.Float64() * radius
-		nx := r * math.Cos(a)
-		ny := r * math.Sin(a)
-		pt := center.Add(utils.Pt(nx, ny))
-		particles = append(particles, NewParticle(pt.X, pt.Y, img))
+	m := 1500.0
+	rad := 0.5
+	NPeriod := 5.0
+	for i := 0; i < int(w); i++ {
+		p := float64(i) / m
+		x := float64(i)
+		y := h/2 + noises[0].Eval3(rad*math.Cos(2*math.Pi*NPeriod*p), rad*math.Sin(2*math.Pi*NPeriod*p), 0.0)*250.0
+		particles = append(particles, NewParticle(x, y, img))
 	}
 	return &Game{
 		Width:     int(w),
 		Height:    int(h),
-		Noise:     noise,
+		Noises:    noises,
 		Scale:     s,
 		Radius:    radius,
+		NPeriod:   NPeriod,
+		Rad:       rad,
+		M:         m,
 		Particles: particles,
 	}
 }
@@ -96,15 +102,15 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 func (g *Game) Update() error {
 	g.Time += 0.01
-	for _, particle := range g.Particles {
+	h := float64(g.Height / 2.0)
+	for i, particle := range g.Particles {
+		p := float64(i) / g.M
+		nx := g.Rad * math.Cos(2*math.Pi*(g.NPeriod*p-g.Time))
+		ny := g.Rad * math.Sin(2*math.Pi*(g.NPeriod*p-g.Time))
+		dx := g.Noises[1].Eval3(nx, ny, 4.0*p) * 100.0
+		dy := g.Noises[0].Eval3(nx, ny, 4.0*p) * 200.0
 		pt := particle.OriginalPt
-		ns := 0.02
-		dX := pt.X * ns * math.Cos(g.Time)
-		dY := pt.Y * ns * math.Sin(g.Time)
-		nX := g.Noise.Eval3(dX, dY, 0.0)
-		nY := g.Noise.Eval3(dX, dY, 1.0)
-		nPt := utils.Pt(nX, nY).Mul(50.0)
-		particle.Pt = pt.Add(nPt)
+		particle.Pt = utils.Pt(pt.X+dx, h+dy)
 	}
 	return nil
 }

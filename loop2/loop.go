@@ -8,6 +8,7 @@ import (
 	"github.com/ojrac/opensimplex-go"
 	"image/color"
 	"math"
+	"math/rand"
 )
 
 type Particle struct {
@@ -46,6 +47,7 @@ type Game struct {
 	Width     int
 	Height    int
 	Scale     int
+	Img       *ebiten.Image
 	Time      float64
 	Radius    float64
 	M         float64
@@ -55,6 +57,39 @@ type Game struct {
 	Particles []*Particle
 }
 
+func heartX(radius, p float64) float64 {
+	return radius / 15.0 * 16.0 * math.Pow(math.Sin(p), 3)
+}
+
+func heartY(radius, p float64) float64 {
+	return radius / 15.0 * (-13.0*math.Cos(p) + 5*math.Cos(2*p) + 2*math.Cos(3*p) + math.Cos(4*p))
+}
+
+func (g *Game) DrawLine() {
+	particles := make([]*Particle, 0)
+	for i := 0; i < g.Width; i++ {
+		p := float64(i) / g.M
+		x := float64(i)
+		y := float64(g.Height)/2.0 + g.Noises[0].Eval3(g.Rad*math.Cos(2*math.Pi*g.NPeriod*p), g.Rad*math.Sin(2*math.Pi*g.NPeriod*p), 0.0)*250.0
+		particles = append(particles, NewParticle(x, y, g.Img))
+	}
+	g.Particles = particles
+}
+
+func (g *Game) DrawPoints() {
+	particles := make([]*Particle, 0)
+	for i := 0; i < 2000; i++ {
+		a := float64(i) * math.Pi / 180.0
+		r := g.Radius * rand.Float64()
+		x := float64(g.Width/2.0) + r*math.Cos(a)
+		y := float64(g.Height/2.0) + r*math.Sin(a)
+
+		particles = append(particles, NewParticle(x, y, g.Img))
+	}
+	g.Particles = particles
+
+}
+
 func NewGame(w, h, radius float64, s int) *Game {
 	img := ebiten.NewImage(s, s)
 	img.Fill(color.White)
@@ -62,26 +97,20 @@ func NewGame(w, h, radius float64, s int) *Game {
 	noises = append(noises, opensimplex.New(994))
 	noises = append(noises, opensimplex.New(673))
 	particles := make([]*Particle, 0)
-	m := 1500.0
-	rad := 0.5
-	NPeriod := 5.0
-	for i := 0; i < int(w); i++ {
-		p := float64(i) / m
-		x := float64(i)
-		y := h/2 + noises[0].Eval3(rad*math.Cos(2*math.Pi*NPeriod*p), rad*math.Sin(2*math.Pi*NPeriod*p), 0.0)*250.0
-		particles = append(particles, NewParticle(x, y, img))
-	}
-	return &Game{
+	game := &Game{
 		Width:     int(w),
 		Height:    int(h),
 		Noises:    noises,
 		Scale:     s,
 		Radius:    radius,
-		NPeriod:   NPeriod,
-		Rad:       rad,
-		M:         m,
+		NPeriod:   1.5,
+		Rad:       0.5,
+		M:         1000,
 		Particles: particles,
+		Img:       img,
 	}
+	game.DrawPoints()
+	return game
 }
 
 func (g *Game) Layout(w, h int) (int, int) {
@@ -100,17 +129,23 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	DebugInfo(screen)
 }
 
-func (g *Game) Update() error {
-	g.Time += 0.01
-	h := float64(g.Height / 2.0)
+func (g *Game) AnimateParticles() {
+	center := utils.Pt(float64(g.Width/2), float64(g.Height/2))
 	for i, particle := range g.Particles {
 		p := float64(i) / g.M
+		pt := particle.OriginalPt
+		sub := pt.Sub(center)
 		nx := g.Rad * math.Cos(2*math.Pi*(g.NPeriod*p-g.Time))
 		ny := g.Rad * math.Sin(2*math.Pi*(g.NPeriod*p-g.Time))
-		dx := g.Noises[1].Eval3(nx, ny, 4.0*p) * 100.0
-		dy := g.Noises[0].Eval3(nx, ny, 4.0*p) * 200.0
-		pt := particle.OriginalPt
-		particle.Pt = utils.Pt(pt.X+dx, h+dy)
+		ratio := (g.Radius - sub.Length()) / g.Radius
+		dx := g.Noises[1].Eval3(nx, ny, 2.0*p) * 200.0 * ratio
+		dy := g.Noises[0].Eval3(nx, ny, 2.0*p) * 200.0 * ratio
+		particle.Pt = utils.Pt(pt.X+dx, pt.Y+dy)
 	}
+}
+
+func (g *Game) Update() error {
+	g.Time += 0.01
+	g.AnimateParticles()
 	return nil
 }

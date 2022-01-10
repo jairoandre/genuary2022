@@ -1,5 +1,7 @@
 package utils
 
+import "math"
+
 type Point struct {
 	X float64
 	Y float64
@@ -31,5 +33,12 @@ func (p Point) Mul(k float64) Point {
 		X: p.X * k,
 		Y: p.Y * k,
 	}
+}
 
+func (p Point) Length2() float64 {
+	return p.X*p.X + p.Y*p.Y
+}
+
+func (p Point) Length() float64 {
+	return math.Sqrt(p.Length2())
 }

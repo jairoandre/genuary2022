@@ -5,10 +5,15 @@ import (
 	"genuary2022/utils"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/mazznoer/colorgrad"
 	"github.com/ojrac/opensimplex-go"
 	"image/color"
 	"math"
 	"math/rand"
+)
+
+const (
+	twoPi = 2 * math.Pi
 )
 
 type Particle struct {
@@ -25,8 +30,8 @@ func (p *Particle) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(-p.CenterPt.X, -p.CenterPt.Y)
 	op.GeoM.Translate(x, y)
-	r, g, b, a := p.Color.RGBA()
-	op.ColorM.Scale(float64(r), float64(g), float64(b), float64(a))
+	r, g, b, a := utils.NormalizeColor(p.Color)
+	op.ColorM.Scale(r, g, b, a)
 	screen.DrawImage(p.Img, op)
 }
 
@@ -70,21 +75,40 @@ func (g *Game) DrawLine() {
 	for i := 0; i < g.Width; i++ {
 		p := float64(i) / g.M
 		x := float64(i)
-		y := float64(g.Height)/2.0 + g.Noises[0].Eval3(g.Rad*math.Cos(2*math.Pi*g.NPeriod*p), g.Rad*math.Sin(2*math.Pi*g.NPeriod*p), 0.0)*250.0
+		y := float64(g.Height)/2.0 + g.Noises[0].Eval3(g.Rad*math.Cos(twoPi*g.NPeriod*p), g.Rad*math.Sin(twoPi*g.NPeriod*p), 0.0)*250.0
 		particles = append(particles, NewParticle(x, y, g.Img))
 	}
 	g.Particles = particles
 }
 
 func (g *Game) DrawPoints() {
+	grad := colorgrad.Cool()
+	noise := opensimplex.NewNormalized(332)
 	particles := make([]*Particle, 0)
-	for i := 0; i < 2000; i++ {
+	halfW := float64(g.Width / 2)
+	halfH := float64(g.Height / 2)
+	for i := 0; i < 720; i++ {
+		ii := float64(i)
+		if i > 360 {
+			ii += 0.5
+		}
+		a := ii * math.Pi / 180.0
+		x := halfW + g.Radius*math.Cos(a)
+		y := halfH + g.Radius*math.Sin(a)
+		t := noise.Eval3(x, y, 1.0)
+		particle := NewParticle(x, y, g.Img)
+		particle.Color = grad.At(t)
+		particles = append(particles, particle)
+	}
+	for i := 0; i < 5000; i++ {
 		a := float64(i) * math.Pi / 180.0
 		r := g.Radius * rand.Float64()
 		x := float64(g.Width/2.0) + r*math.Cos(a)
 		y := float64(g.Height/2.0) + r*math.Sin(a)
-
-		particles = append(particles, NewParticle(x, y, g.Img))
+		particle := NewParticle(x, y, g.Img)
+		t := noise.Eval3(x, y, 1.0)
+		particle.Color = grad.At(t)
+		particles = append(particles, particle)
 	}
 	g.Particles = particles
 
@@ -96,18 +120,16 @@ func NewGame(w, h, radius float64, s int) *Game {
 	noises := make([]opensimplex.Noise, 0)
 	noises = append(noises, opensimplex.New(994))
 	noises = append(noises, opensimplex.New(673))
-	particles := make([]*Particle, 0)
 	game := &Game{
-		Width:     int(w),
-		Height:    int(h),
-		Noises:    noises,
-		Scale:     s,
-		Radius:    radius,
-		NPeriod:   1.5,
-		Rad:       0.5,
-		M:         1000,
-		Particles: particles,
-		Img:       img,
+		Width:   int(w),
+		Height:  int(h),
+		Noises:  noises,
+		Scale:   s,
+		Radius:  radius,
+		NPeriod: 2.5,
+		Rad:     0.1,
+		M:       2000,
+		Img:     img,
 	}
 	game.DrawPoints()
 	return game
@@ -135,11 +157,11 @@ func (g *Game) AnimateParticles() {
 		p := float64(i) / g.M
 		pt := particle.OriginalPt
 		sub := pt.Sub(center)
-		nx := g.Rad * math.Cos(2*math.Pi*(g.NPeriod*p-g.Time))
-		ny := g.Rad * math.Sin(2*math.Pi*(g.NPeriod*p-g.Time))
+		nx := g.Rad * math.Cos(twoPi*(g.NPeriod*p-g.Time))
+		ny := g.Rad * math.Sin(twoPi*(g.NPeriod*p-2*g.Time))
 		ratio := (g.Radius - sub.Length()) / g.Radius
-		dx := g.Noises[1].Eval3(nx, ny, 2.0*p) * 200.0 * ratio
-		dy := g.Noises[0].Eval3(nx, ny, 2.0*p) * 200.0 * ratio
+		dx := g.Noises[0].Eval3(nx, ny, 4.0*p) * g.Radius * ratio
+		dy := g.Noises[1].Eval3(nx, ny, 4.0*p) * g.Radius * ratio
 		particle.Pt = utils.Pt(pt.X+dx, pt.Y+dy)
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/mazznoer/colorgrad"
 	"github.com/ojrac/opensimplex-go"
+	"image"
 	"image/color"
 	"math"
 	"math/rand"
@@ -53,6 +54,7 @@ type Game struct {
 	Height    int
 	Scale     int
 	Img       *ebiten.Image
+	Prev      *image.Image
 	Time      float64
 	Radius    float64
 	M         float64
@@ -60,6 +62,7 @@ type Game struct {
 	NPeriod   float64
 	Noises    []opensimplex.Noise
 	Particles []*Particle
+	GifWriter utils.GifWriter
 }
 
 func heartX(radius, p float64) float64 {
@@ -82,7 +85,7 @@ func (g *Game) DrawLine() {
 }
 
 func (g *Game) DrawPoints() {
-	grad := colorgrad.Cool()
+	grad := colorgrad.Inferno()
 	noise := opensimplex.NewNormalized(332)
 	particles := make([]*Particle, 0)
 	halfW := float64(g.Width / 2)
@@ -100,7 +103,7 @@ func (g *Game) DrawPoints() {
 		particle.Color = grad.At(t)
 		particles = append(particles, particle)
 	}
-	for i := 0; i < 5000; i++ {
+	for i := 0; i < 10000; i++ {
 		a := float64(i) * math.Pi / 180.0
 		r := g.Radius * rand.Float64()
 		x := float64(g.Width/2.0) + r*math.Cos(a)
@@ -127,9 +130,14 @@ func NewGame(w, h, radius float64, s int) *Game {
 		Scale:   s,
 		Radius:  radius,
 		NPeriod: 2.5,
-		Rad:     0.1,
+		Rad:     0.25,
 		M:       2000,
 		Img:     img,
+		GifWriter: utils.GifWriter{
+			FileName:  "loop.gif",
+			Recording: true,
+			StopCount: 50,
+		},
 	}
 	game.DrawPoints()
 	return game
@@ -148,6 +156,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	for _, particle := range g.Particles {
 		particle.Draw(screen)
 	}
+	img := screen.SubImage(screen.Bounds())
+	g.Prev = &img
+	//utils.RecordGif(img, &g.GifWriter)
 	DebugInfo(screen)
 }
 

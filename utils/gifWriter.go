@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"image"
 	"image/color/palette"
 	"image/draw"
@@ -17,7 +18,15 @@ type GifWriter struct {
 	StopCount  int
 }
 
-func RecordGif(img image.Image, writer *GifWriter) error {
+func NewGifWriter(fileName string, stopCount int) *GifWriter {
+	return &GifWriter{
+		FileName:  fileName,
+		StopCount: stopCount,
+		Recording: true,
+	}
+}
+
+func (writer *GifWriter) RecordGif(img image.Image) error {
 	if !writer.Recording {
 		return nil
 	}
@@ -28,6 +37,7 @@ func RecordGif(img image.Image, writer *GifWriter) error {
 			return err
 		}
 		writer.Recording = false
+		fmt.Println("Done gif!")
 		return nil
 	}
 	if writer.File == nil {

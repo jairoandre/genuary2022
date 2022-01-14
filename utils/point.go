@@ -7,6 +7,15 @@ type Point struct {
 	Y float64
 }
 
+type Vector2D Point
+
+func Vec2(x, y float64) Vector2D {
+	return Vector2D{
+		X: x,
+		Y: y,
+	}
+}
+
 func Pt(X, Y float64) Point {
 	return Point{
 		X: X,
